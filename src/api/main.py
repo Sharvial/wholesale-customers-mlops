@@ -1,51 +1,84 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import joblib
 import pandas as pd
 
 
-# Cargar pipeline y modelo
+# ============================================================
+# CARGA DEL PIPELINE Y MODELO
+# ============================================================
+
 pipeline = joblib.load("models/feature_pipeline.pkl")
 model = joblib.load("models/baseline_kmeans.pkl")
 
 
-# Crear aplicación FastAPI
+# ============================================================
+# CONFIGURACIÓN DE LA API
+# ============================================================
+
 app = FastAPI(
     title="Wholesale Customers ML API",
-    description="API para predicción de segmentos de clientes",
+    description="API para segmentación de clientes mediante K-Means",
     version="1.0.0"
 )
 
 
-# Datos que recibirá la API
+# ============================================================
+# MODELO DE ENTRADA
+# ============================================================
+
 class CustomerData(BaseModel):
-    Fresh: float
-    Milk: float
-    Grocery: float
-    Frozen: float
-    Detergents_Paper: float
-    Delicassen: float
+    Fresh: float = Field(ge=0, description="Gasto anual en productos Fresh")
+    Milk: float = Field(ge=0, description="Gasto anual en productos Milk")
+    Grocery: float = Field(ge=0, description="Gasto anual en productos Grocery")
+    Frozen: float = Field(ge=0, description="Gasto anual en productos Frozen")
+    Detergents_Paper: float = Field(
+        ge=0,
+        description="Gasto anual en detergentes y papel"
+    )
+    Delicassen: float = Field(
+        ge=0,
+        description="Gasto anual en productos Delicassen"
+    )
 
 
-# Endpoint de salud
+# ============================================================
+# MODELO DE RESPUESTA
+# ============================================================
+
+class PredictionResponse(BaseModel):
+    cluster: int
+    model_version: str
+
+
+# ============================================================
+# ENDPOINT DE SALUD
+# ============================================================
+
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    return {
+        "status": "ok"
+    }
 
 
-# Endpoint de predicción
-@app.post("/predict")
+# ============================================================
+# ENDPOINT DE PREDICCIÓN
+# ============================================================
+
+@app.post("/predict", response_model=PredictionResponse)
 def predict(customer: CustomerData):
 
     # Convertir los datos recibidos en DataFrame
     data = pd.DataFrame([customer.model_dump()])
 
-    # Aplicar las transformaciones del pipeline
+    # Aplicar el mismo pipeline utilizado durante el entrenamiento
     data_transformed = pipeline.transform(data)
 
-    # Realizar la predicción
+    # Realizar predicción
     cluster = model.predict(data_transformed)
 
     return {
-        "cluster": int(cluster[0])
+        "cluster": int(cluster[0]),
+        "model_version": "baseline-kmeans"
     }
