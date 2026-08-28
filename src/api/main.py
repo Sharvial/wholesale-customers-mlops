@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 import joblib
 import pandas as pd
+import time
 
 
 # ============================================================
@@ -21,6 +22,18 @@ app = FastAPI(
     description="API para segmentación de clientes mediante K-Means",
     version="1.0.0"
 )
+
+
+# ============================================================
+# MÉTRICAS DEL SISTEMA
+# ============================================================
+
+system_metrics = {
+    "total_requests": 0,
+    "successful_requests": 0,
+    "failed_requests": 0,
+    "total_response_time": 0.0
+}
 
 
 # ============================================================
@@ -69,16 +82,57 @@ def health_check():
 @app.post("/predict", response_model=PredictionResponse)
 def predict(customer: CustomerData):
 
-    # Convertir los datos recibidos en DataFrame
-    data = pd.DataFrame([customer.model_dump()])
+    start_time = time.perf_counter()
 
-    # Aplicar el mismo pipeline utilizado durante el entrenamiento
-    data_transformed = pipeline.transform(data)
+    system_metrics["total_requests"] += 1
 
-    # Realizar predicción
-    cluster = model.predict(data_transformed)
+    try:
+        # Convertir los datos recibidos en DataFrame
+        data = pd.DataFrame([customer.model_dump()])
+
+        # Aplicar el mismo pipeline utilizado durante el entrenamiento
+        data_transformed = pipeline.transform(data)
+
+        # Realizar predicción
+        cluster = model.predict(data_transformed)
+
+        system_metrics["successful_requests"] += 1
+
+        return {
+            "cluster": int(cluster[0]),
+            "model_version": "baseline-kmeans"
+        }
+
+    except Exception:
+        system_metrics["failed_requests"] += 1
+        raise
+
+    finally:
+        elapsed_time = time.perf_counter() - start_time
+        system_metrics["total_response_time"] += elapsed_time
+
+
+# ============================================================
+# ENDPOINT DE MÉTRICAS DEL SISTEMA
+# ============================================================
+
+@app.get("/metrics")
+def get_metrics():
+
+    total_requests = system_metrics["total_requests"]
+
+    if total_requests > 0:
+        average_response_time = (
+            system_metrics["total_response_time"] / total_requests
+        )
+    else:
+        average_response_time = 0.0
 
     return {
-        "cluster": int(cluster[0]),
-        "model_version": "baseline-kmeans"
+        "total_requests": total_requests,
+        "successful_requests": system_metrics["successful_requests"],
+        "failed_requests": system_metrics["failed_requests"],
+        "average_response_time_seconds": round(
+            average_response_time, 6
+        )
     }
