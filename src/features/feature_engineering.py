@@ -3,7 +3,8 @@ import numpy as np
 import os
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, RobustScaler
-from sklearn.compose import ColumnTransformer
+from sklearn.compose import ColumnTransformer 
+import joblib
 
 def build_feature_pipeline():
     """
@@ -56,5 +57,13 @@ if __name__ == "__main__":
     # Definimos rutas según la estructura del repositorio
     INPUT_DATA = "data/raw/wholesale_customers.csv"
     OUTPUT_DATA = "data/processed/wholesale_customers_scaled.csv"
+    PIPELINE_OUTPUT = "models/feature_pipeline.pkl"
     
-    process_data(INPUT_DATA, OUTPUT_DATA)
+    # 1. Ejecutamos el procesamiento y capturamos el pipeline entrenado
+    trained_pipeline = process_data(INPUT_DATA, OUTPUT_DATA)
+    
+    # 2. Guardamos el pipeline de preprocesamiento para que Sharon lo use en la API
+    os.makedirs(os.path.dirname(PIPELINE_OUTPUT), exist_ok=True)
+    joblib.dump(trained_pipeline, PIPELINE_OUTPUT)
+    
+    print(f"Pipeline exportado EXITOSAMENTE para la API en: {PIPELINE_OUTPUT}")
