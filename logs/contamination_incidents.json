@@ -1,0 +1,47 @@
+{
+    "timestamp": "2026-09-01T22:14:42.915967",
+    "status": "BLOCKED",
+    "incident_count": 8,
+    "incidents": [
+        {
+            "type": "missing_values",
+            "column": "Fresh",
+            "message": "Se detectaron 2 valores faltantes."
+        },
+        {
+            "type": "duplicates",
+            "column": null,
+            "message": "Se detectaron 1 filas duplicadas."
+        },
+        {
+            "type": "extreme_outlier",
+            "column": "Grocery",
+            "message": "Se detectaron 1 valores extremadamente altos."
+        },
+        {
+            "type": "extreme_outlier",
+            "column": "Detergents_Paper",
+            "message": "Se detectaron 1 valores extremadamente altos."
+        },
+        {
+            "type": "invalid_datatype",
+            "column": "Milk",
+            "message": "Se detectaron 1 valores con tipo de dato incorrecto."
+        },
+        {
+            "type": "unknown_category",
+            "column": "Channel",
+            "message": "Categorías desconocidas detectadas: {np.int64(999)}"
+        },
+        {
+            "type": "unknown_category",
+            "column": "Region",
+            "message": "Categorías desconocidas detectadas: {np.int64(999)}"
+        },
+        {
+            "type": "schema_modification",
+            "column": null,
+            "message": "Columnas nuevas detectadas: {'UnexpectedColumn'}"
+        }
+    ]
+}
