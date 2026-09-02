@@ -68,13 +68,20 @@ def train_model(data_path, model_output_path):
             "model": "KMeans",
             "n_clusters": k,
             "random_state": random_state,
-            "n_init": n_init
+            "n_init": n_init,
+            "feature_set": "log1p_robust_scaled",
+            "data_version": "wholesale_customers_v1",
+            "selection_criterion": "highest_silhouette_then_lowest_davies_bouldin"
         })
 
         mlflow.log_metrics({
             "silhouette_score": sil_score,
             "davies_bouldin_score": db_score
         })
+
+        # Identificar este run como entrenamiento
+        mlflow.set_tag("run_type", "training")
+        mlflow.set_tag("model_status", "candidate")
 
         mlflow.log_artifact(
             model_output_path,
@@ -103,17 +110,24 @@ def train_model(data_path, model_output_path):
 
     experiment = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
 
+    if experiment is None:
+        print("No se encontró el experimento de MLflow.")
+        return
+
+    # Solamente considerar runs de entrenamiento
     runs = mlflow.search_runs(
-        experiment_ids=[experiment.experiment_id]
+        experiment_ids=[experiment.experiment_id],
+        filter_string="tags.run_type = 'training'"
     )
 
     if runs.empty:
-        print("No se encontraron ejecuciones.")
+        print("No se encontraron ejecuciones de entrenamiento.")
         return
 
-    # Ordenamos:
+    # Orden de selección:
     # 1. Silhouette más alto = mejor
-    # 2. Davies-Bouldin más bajo = mejor
+    # 2. Davies-Bouldin más bajo = desempate
+
     best_run = runs.sort_values(
         by=[
             "metrics.silhouette_score",
@@ -148,7 +162,7 @@ def train_model(data_path, model_output_path):
             name=REGISTERED_MODEL_NAME
         )
 
-        print(f"Modelo registrado en Model Registry.")
+        print("Modelo registrado en Model Registry.")
         print(f"Nombre: {REGISTERED_MODEL_NAME}")
         print(f"Versión: {model_version.version}")
 
